@@ -46,14 +46,18 @@ class CachedImage extends React.Component {
     static propTypes = {
         renderImage: PropTypes.func.isRequired,
         activityIndicatorProps: PropTypes.object.isRequired,
+        onCustomLoad: PropTypes.func,
+        onCustomError: PropTypes.func,
 
         // ImageCacheManager options
         ...ImageCacheManagerOptionsPropTypes,
     };
 
     static defaultProps = {
-            renderImage: props => (<ImageBackground imageStyle={props.style} ref={CACHED_IMAGE_REF} {...props} />),
+            renderImage: props => (<ImageBackground style={props.style} ref={CACHED_IMAGE_REF} {...props} />),
             activityIndicatorProps: {},
+            onCustomLoad: () => null,
+            onCustomError: () => null,
     };
 
     static contextTypes = {
@@ -147,6 +151,7 @@ class CachedImage extends React.Component {
                 this.safeSetState({
                     cachedImagePath
                 });
+                this.props.onCustomLoad();
             })
             .catch(err => {
                 // console.warn(err);
@@ -154,6 +159,7 @@ class CachedImage extends React.Component {
                     cachedImagePath: null,
                     isCacheable: false
                 });
+                this.props.onCustomError();
             });
     }
 
@@ -198,9 +204,7 @@ class CachedImage extends React.Component {
         if (!source || (Platform.OS === 'android' && flattenStyle(imageStyle).borderRadius)) {
             if (LoadingIndicator) {
                 return (
-                    <View style={[imageStyle, activityIndicatorStyle]}>
-                        <LoadingIndicator {...activityIndicatorProps} />
-                    </View>
+                    <LoadingIndicator {...activityIndicatorProps} />
                 );
             }
             return (
@@ -217,9 +221,7 @@ class CachedImage extends React.Component {
             source,
             children: (
                 LoadingIndicator
-                    ? <View style={[imageStyle, activityIndicatorStyle]}>
-                    <LoadingIndicator {...activityIndicatorProps} />
-                </View>
+                    ? <LoadingIndicator {...activityIndicatorProps} />
                     : <ActivityIndicator
                     {...activityIndicatorProps}
                     style={activityIndicatorStyle}/>
