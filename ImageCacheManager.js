@@ -5,6 +5,7 @@ const _ = require('lodash');
 const fsUtils = require('./utils/fsUtils');
 const pathUtils = require('./utils/pathUtils');
 const MemoryCache = require('react-native-clcasher/MemoryCache').default;
+const PQueue = require('p-queue');
 
 module.exports = (defaultOptions = {}, urlCache = MemoryCache, fs = fsUtils, path = pathUtils) => {
 
@@ -23,7 +24,7 @@ module.exports = (defaultOptions = {}, urlCache = MemoryCache, fs = fsUtils, pat
         return _.isString(url) && (_.startsWith(url.toLowerCase(), 'http://') || _.startsWith(url.toLowerCase(), 'https://'));
     }
 
-    function cacheUrl(url, options, getCachedFile) {
+    function cacheUrl(url, options, getCachedFile, forceDownload) {
         if (!isCacheable(url)) {
             return Promise.reject(new Error('Url is not cacheable'));
         }
@@ -40,6 +41,9 @@ module.exports = (defaultOptions = {}, urlCache = MemoryCache, fs = fsUtils, pat
                 }
                 // console.log('ImageCacheManager: url cache hit', cacheableUrl);
                 const cachedFilePath = `${options.cacheLocation}/${fileRelativePath}`;
+                if (forceDownload) {
+                    return getCachedFile(cachedFilePath, url, options);
+                }
 
                 return fs.exists(cachedFilePath)
                     .then((exists) => {
@@ -66,6 +70,13 @@ module.exports = (defaultOptions = {}, urlCache = MemoryCache, fs = fsUtils, pat
             });
     }
 
+    const cacheUrlQueue = new PQueue({concurrency: 3});
+    const downloadFileQueue = new PQueue({concurrency: 3});
+
+    function downloadUrl(filePath, url, options) {
+        return cacheUrlQueue.add(() => fs.downloadFile(url, filePath, options.headers));
+    }
+
     return {
 
         /**
@@ -74,12 +85,13 @@ module.exports = (defaultOptions = {}, urlCache = MemoryCache, fs = fsUtils, pat
          * @param options
          * @returns {Promise}
          */
-        downloadAndCacheUrl(url, options = {}) {
-            return cacheUrl(
+        downloadAndCacheUrl(url, options = {}, forceDownload) {
+            return downloadFileQueue.add(() => cacheUrl(
                 url,
                 options,
-                filePath => fs.downloadFile(url, filePath, options.headers)
-            );
+                downloadUrl,
+                forceDownload,
+            ));
         },
 
         /**
