@@ -62,7 +62,7 @@ module.exports = (defaultOptions = {}, urlCache = MemoryCache, fs = fsUtils, pat
                 // remove expired file if exists
                 return fs.deleteFile(filePath)
                     // get the image to cache (download / copy / etc)
-                    .then(() => getCachedFile(filePath))
+                    .then(() => getCachedFile(filePath, url, options))
                     // add to cache
                     .then(() => urlCache.set(cacheableUrl, fileRelativePath, options.ttl))
                     // return filePath
