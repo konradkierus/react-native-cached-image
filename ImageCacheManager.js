@@ -51,7 +51,7 @@ module.exports = (defaultOptions = {}, urlCache = MemoryCache, fs = fsUtils, pat
                         if (forceDownloadCallback) {
                             getCachedFile(cachedFilePath, url, options).then(() => {
                                 forceDownloadCallback(cachedFilePath);
-                            });
+                            }).catch(() => '');
                         }
                         if (exists) {
                             return cachedFilePath
