@@ -24,7 +24,7 @@ module.exports = (defaultOptions = {}, urlCache = MemoryCache, fs = fsUtils, pat
         return _.isString(url) && (_.startsWith(url.toLowerCase(), 'http://') || _.startsWith(url.toLowerCase(), 'https://'));
     }
 
-    function cacheUrl(url, options, getCachedFile, forceDownload) {
+    function cacheUrl(url, options, getCachedFile, forceDownloadCallback) {
         if (!isCacheable(url)) {
             return Promise.reject(new Error('Url is not cacheable'));
         }
@@ -41,12 +41,14 @@ module.exports = (defaultOptions = {}, urlCache = MemoryCache, fs = fsUtils, pat
                 }
                 // console.log('ImageCacheManager: url cache hit', cacheableUrl);
                 const cachedFilePath = `${options.cacheLocation}/${fileRelativePath}`;
-                if (forceDownload) {
-                    return getCachedFile(cachedFilePath, url, options);
-                }
 
                 return fs.exists(cachedFilePath)
                     .then((exists) => {
+                        if (forceDownloadCallback) {
+                            getCachedFile(cachedFilePath, url, options).then(() => {
+                                forceDownloadCallback(cachedFilePath);
+                            });
+                        }
                         if (exists) {
                             return cachedFilePath
                         } else {
@@ -85,12 +87,12 @@ module.exports = (defaultOptions = {}, urlCache = MemoryCache, fs = fsUtils, pat
          * @param options
          * @returns {Promise}
          */
-        downloadAndCacheUrl(url, options = {}, forceDownload) {
+        downloadAndCacheUrl(url, options = {}, forceDownloadCallback) {
             return downloadFileQueue.add(() => cacheUrl(
                 url,
                 options,
                 downloadUrl,
-                forceDownload,
+                forceDownloadCallback,
             ));
         },
 
