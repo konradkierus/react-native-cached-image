@@ -115,7 +115,7 @@ module.exports = {
                                 }
 
                                 // the download is complete and rename the temporary file
-                                return fs.mv(tmpFile, toFile);
+                                return fs.unlink(toFile).then(() => fs.mv(tmpFile, toFile));
                             });
 
 
