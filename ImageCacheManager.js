@@ -24,7 +24,7 @@ module.exports = (defaultOptions = {}, urlCache = MemoryCache, fs = fsUtils, pat
         return _.isString(url) && (_.startsWith(url.toLowerCase(), 'http://') || _.startsWith(url.toLowerCase(), 'https://'));
     }
 
-    function cacheUrl(url, options, getCachedFile, forceDownload, forceDownloadCallback) {
+    function cacheUrl(url, options, getCachedFile, forceDownload) {
         if (!isCacheable(url)) {
             return Promise.reject(new Error('Url is not cacheable'));
         }
@@ -42,22 +42,15 @@ module.exports = (defaultOptions = {}, urlCache = MemoryCache, fs = fsUtils, pat
                 // console.log('ImageCacheManager: url cache hit', cacheableUrl);
                 const cachedFilePath = `${options.cacheLocation}/${fileRelativePath}`;
 
-                if (forceDownload && !forceDownloadCallback) {
+                if (forceDownload) {
                     return getCachedFile(cachedFilePath, url, options);
                 }
 
                 return fs.exists(cachedFilePath)
                     .then((exists) => {
-                        if (forceDownloadCallback) {
-                            getCachedFile(cachedFilePath, url, options).then(() => {
-                                forceDownloadCallback(cachedFilePath);
-                            }).catch(() => '');
-                        }
-                        if (exists) {
-                            return cachedFilePath
-                        } else {
-                            throw new Error('file under URL stored in url cache doesn\'t exsts');
-                        }
+                        return getCachedFile(cachedFilePath, url, options).then(() => {
+                            return cachedFilePath;
+                        });
                     });
             })
             // url is not found in the cache or is expired
@@ -90,16 +83,14 @@ module.exports = (defaultOptions = {}, urlCache = MemoryCache, fs = fsUtils, pat
          * @param url
          * @param options
          * @param forceDownload
-         * @param forceDownloadCallback
          * @returns {Promise}
          */
-        downloadAndCacheUrl(url, options = {}, forceDownload, forceDownloadCallback) {
+        downloadAndCacheUrl(url, options = {}, forceDownload) {
             return downloadFileQueue.add(() => cacheUrl(
                 url,
                 options,
                 downloadUrl,
                 forceDownload,
-                forceDownloadCallback,
             ));
         },
 
