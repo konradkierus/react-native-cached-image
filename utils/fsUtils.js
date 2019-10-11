@@ -103,8 +103,7 @@ module.exports = {
                         }
                         let status = Math.floor(res.respInfo.status / 100);
                         if (status !== 2) {
-                            // TODO - log / return error?
-                            return Promise.reject();
+                            return Promise.reject(res.respInfo);
                         }
 
                         return RNFetchBlob.fs.stat(tmpFile)
@@ -124,7 +123,7 @@ module.exports = {
                         // cleanup. will try re-download on next CachedImage mount.
                         this.deleteFile(tmpFile);
                         delete activeDownloads[toFile];
-                        return Promise.reject('Download failed');
+                        return Promise.reject(error);
                     })
                     .then(() => {
                         // cleanup
